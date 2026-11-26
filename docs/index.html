@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>一键评教助手</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+body{margin:0}
+/* Layout: single readable column; numbered steps down the page, each step a sheet with a small "what you'll see" mock */
+:root{
+  --bg:#f6f8f6; --surface:#ffffff; --fg:#1c2620; --muted:#5d6b62; --line:#dde5df;
+  --accent:#006633; --accent-soft:#e3f0e8; --accent-fg:#ffffff; --warn-bg:#fff6e0; --warn-fg:#7a5200;
+  --code-bg:#f0f3f1;
+  --font-body:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
+  --font-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111613; --surface:#1a211d; --fg:#e4ebe6; --muted:#9aa89f; --line:#2c3631;
+  --accent:#3fb47a; --accent-soft:#1d3327; --accent-fg:#0b1a12; --warn-bg:#33290f; --warn-fg:#f0c870;
+  --code-bg:#151b17; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#111613; --surface:#1a211d; --fg:#e4ebe6; --muted:#9aa89f; --line:#2c3631;
+  --accent:#3fb47a; --accent-soft:#1d3327; --accent-fg:#0b1a12; --warn-bg:#33290f; --warn-fg:#f0c870;
+  --code-bg:#151b17; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.75 var(--font-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+a{color:var(--accent)}
+h1,h2,h3{text-wrap:balance;line-height:1.3;margin:0}
+p{margin:0}
+.hero{margin-top:calc(-1 * env(safe-area-inset-top,0px));padding-top:calc(env(safe-area-inset-top,0px) + 44px);padding-bottom:8px;display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:13px;letter-spacing:.08em;color:var(--accent);font-weight:600}
+h1{font-size:clamp(30px,6vw,42px);font-weight:800}
+.lead{font-size:18px;color:var(--muted)}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.cmp{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.cmp .k{font-size:13px;color:var(--muted)}
+.cmp .v{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+.cmp.good{background:var(--accent-soft);border-color:transparent}
+.cmp.good .v{color:var(--accent)}
+.calc{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.calc input{width:64px;font:inherit;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg)}
+section{display:flex;flex-direction:column;gap:14px}
+h2{font-size:22px;font-weight:700}
+.need{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.need div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px}
+.need b{display:block;font-size:16px}
+ol.steps{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:16px;counter-reset:s}
+ol.steps>li{counter-increment:s;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+ol.steps>li>h3{font-size:19px;display:flex;align-items:center;gap:10px}
+ol.steps>li>h3::before{content:counter(s);flex:none;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-size:15px}
+.sub{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:6px}
+kbd{font-family:var(--font-mono);font-size:13px;background:var(--code-bg);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px}
+.ui{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:5px;padding:0 6px;font-weight:600}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--accent);color:var(--accent-fg);border:none;border-radius:10px;padding:12px 20px;font:600 16px var(--font-body);cursor:pointer;text-decoration:none}
+.btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+.btn:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.status{font-size:14px;color:var(--accent);font-weight:600}
+.code{width:100%;height:150px;font:12px/1.5 var(--font-mono);background:var(--code-bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px;resize:vertical}
+.note{background:var(--warn-bg);color:var(--warn-fg);border-radius:10px;padding:12px 14px;font-size:15px}
+.tip{font-size:14px;color:var(--muted)}
+/* mock of the helper panel */
+.mock{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--bg);max-width:340px;font-size:14px;display:flex;flex-direction:column;gap:6px}
+.mock .t{color:var(--accent);font-weight:700}
+.mock .r{display:flex;gap:6px;align-items:center}
+.mock .dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--accent);flex:none}
+.mock .dot.on{background:var(--accent)}
+.mock .box{width:12px;height:12px;border-radius:3px;border:2px solid var(--muted);flex:none}
+.mock .n{border:1px solid var(--line);border-radius:4px;padding:0 6px;background:var(--surface)}
+.mock .bs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+.mock .bs span{border:1px solid var(--accent);color:var(--accent);border-radius:6px;text-align:center;padding:4px 0;font-size:13px}
+.mock .bs span.p{background:var(--accent);color:var(--accent-fg)}
+.fab{display:inline-block;background:#006633;color:#fff;border-radius:20px;padding:6px 14px;font-size:14px;font-weight:600}
+.flow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:15px}
+.flow span.s{background:var(--accent-soft);color:var(--accent);border-radius:8px;padding:4px 10px;font-weight:600}
+details{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+details+details{margin-top:-4px}
+summary{cursor:pointer;font-weight:600;font-size:16px}
+details p,details ul{margin-top:10px;color:var(--fg)}
+details ul{padding-left:1.3em;display:flex;flex-direction:column;gap:4px}
+footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+@media (max-width:560px){.need{grid-template-columns:1fr}.compare{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">重邮学评教 · 使用指南</div>
+    <h1>一键评教助手</h1>
+    <p class="lead">不用再每门课等 60 秒。按下面 5 步装好，以后点一下，所有课程一起评完。</p>
+    <div class="compare">
+      <div class="cmp"><span class="k">自己一门一门评</span><span class="v" id="manual">约 18 分钟</span></div>
+      <div class="cmp good"><span class="k">用评教助手</span><span class="v">约 1 分钟</span></div>
+    </div>
+    <label class="calc" for="n">我这学期有 <input id="n" type="number" min="1" max="60" value="12"> 门课要评（每门手动约 90 秒：等 60 秒 + 点星星）</label>
+  </header>
+
+  <section>
+    <h2>开始前，请准备好</h2>
+    <div class="need">
+      <div><b>一台电脑</b>Windows 或苹果电脑都行。手机上用不了。</div>
+      <div><b>Chrome 浏览器</b>Edge 浏览器也可以，步骤几乎一样。</div>
+      <div><b>能登录教务在线</b>先确认你自己能正常打开学评教页面。</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>安装步骤（只需做一次）</h2>
+    <ol class="steps">
+      <li>
+        <h3>安装“篡改猴”扩展</h3>
+        <p>篡改猴（Tampermonkey）是一个免费的浏览器小工具，用来运行评教助手。</p>
+        <div class="btnrow">
+          <a class="btn" href="https://chromewebstore.google.com/detail/dhdgffkkebhmkfjojejmpbldmpobfkfo" target="_blank" rel="noopener">打开安装页面</a>
+          <a class="btn ghost" href="https://microsoftedge.microsoft.com/addons/detail/iikmkjmpaadaobahmlepeloendndfphd" target="_blank" rel="noopener">Edge 浏览器点这里</a>
+        </div>
+        <ul class="sub">
+          <li>在打开的页面里点 <span class="ui">添加至 Chrome</span>，再点 <span class="ui">添加扩展程序</span>。</li>
+          <li>如果打不开商店页面，可以搜索“篡改猴 离线安装”，或请同学帮你装。</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>打开“允许用户脚本”开关</h3>
+        <p>新版 Chrome 默认不让扩展运行脚本，需要手动打开一个开关。<b>这一步最容易漏掉。</b></p>
+        <ul class="sub">
+          <li>在地址栏输入 <kbd>chrome://extensions</kbd> 并回车。</li>
+          <li>找到“篡改猴”，点 <span class="ui">详细信息</span>。</li>
+          <li>往下找到 <span class="ui">允许用户脚本</span>，把开关打开（变成蓝色）。</li>
+          <li>如果没有这个开关：回到扩展页面，打开右上角的 <span class="ui">开发者模式</span>。</li>
+        </ul>
+        <p class="tip">Edge 浏览器：地址栏输入 <kbd>edge://extensions</kbd>，打开左侧的“开发人员模式”。</p>
+      </li>
+
+      <li>
+        <h3>安装评教助手</h3>
+        <p><b>最简单的办法：</b>点下面的按钮，篡改猴会打开一个安装页面，点里面的 <span class="ui">安装</span> 就完成了，可以直接跳到第 5 步。</p>
+        <div class="btnrow"><a class="btn" href="https://raw.githubusercontent.com/SeaKurisu/eval-helper/main/eval-helper.user.js" target="_blank" rel="noopener">一键安装评教助手</a></div>
+        <p>如果点了没有出现安装页面，用下面的备用办法：点按钮复制整段内容，再按第 4 步粘贴。不用看懂里面写了什么。</p>
+        <div class="btnrow">
+          <button class="btn ghost" id="copy" type="button">复制评教助手</button>
+          <span class="status" id="copyStatus" role="status"></span>
+        </div>
+        <textarea class="code" id="script" readonly spellcheck="false" aria-label="评教助手脚本内容">// ==UserScript==
+// @name         一键评教助手 (Eval Helper)
+// @namespace    https://github.com/SeaKurisu/eval-helper
+// @author       SeaKurisu
+// @license      MIT
+// @homepageURL  https://github.com/SeaKurisu/eval-helper
+// @updateURL    https://raw.githubusercontent.com/SeaKurisu/eval-helper/main/eval-helper.user.js
+// @downloadURL  https://raw.githubusercontent.com/SeaKurisu/eval-helper/main/eval-helper.user.js
+// @version      0.1.0
+// @description  学评教一键批量评价：接口直提，跳过前端倒计时；站点适配器可扩展
+// @match        http://jwzxm.cqupt.edu.cn/mjwzx2022/xpj2025/*
+// @match        https://jwzxm.cqupt.edu.cn/mjwzx2022/xpj2025/*
+// @run-at       document-start
+// @grant        none
+// ==/UserScript==
+
+(function () {
+  'use strict';
+
+  /* =====================================================================
+   * 1. 站点适配器（Profile）
+   *    新学校/新系统只需新增一个 profile，实现 4 个方法：
+   *      listTasks()          -&gt; [{ key, title, remaining, raw }]
+   *      getForm(task)        -&gt; { items: [{ id, label, group, max }], hasMemo }
+   *      submit(task, form, answers, memo) -&gt; { ok, msg }
+   *      isTimeError(msg)     -&gt; 服务端是否因“停留时间不足”拒绝
+   *    以及可选的 minWaitSec（服务端若校验停留时长时使用）。
+   * ===================================================================== */
+  const PROFILES = [
+    {
+      id: 'cqupt-xpj2025',
+      name: '重庆邮电大学 学评教 2025',
+      match: /\/mjwzx2022\/xpj2025\//,
+      requiredTimes: 2,
+      minWaitSec: 60,
+      base() {
+        return location.origin + location.pathname.replace(/html\/.*$/, '');
+      },
+      async api(method, path, data) {
+        const url = new URL(path, this.base());
+        const init = { method, credentials: 'include', headers: {} };
+        if (method === 'GET' &amp;&amp; data) {
+          Object.entries(data).forEach(([k, v]) =&gt; url.searchParams.set(k, v ?? ''));
+        } else if (data) {
+          init.headers['Content-Type'] = 'application/json';
+          init.body = JSON.stringify(data);
+        }
+        const res = await fetch(url, init);
+        if (res.status === 401) throw new Error('登录已失效，请刷新页面重新登录');
+        const json = await res.json();
+        return json; // { code, data, info }
+      },
+      async listTasks() {
+        const r = await this.api('GET', 'index.php', { action: 'stuGetRw' });
+        if (r.code !== 0) throw new Error(r.info || '获取课程列表失败');
+        return (r.data || [])
+          .map((c) =&gt; ({
+            key: `${c.jxb}|${c.teaId}`,
+            title: `${c.kcmc} - ${c.teaName}`,
+            done: c.pjNum,
+            remaining: Math.max(0, this.requiredTimes - (c.pjNum || 0)),
+            raw: c,
+          }));
+      },
+      async getForm(task) {
+        const c = task.raw;
+        const r = await this.api('GET', 'index.php', {
+          action: 'stuGetJxbZb', jxb: c.jxb, teaId: c.teaId, pjCs: '',
+        });
+        if (r.code !== 0) throw new Error(r.info || '获取评价指标失败');
+        const items = [];
+        Object.entries(r.data || {}).forEach(([group, arr]) =&gt; {
+          if (group === 'memo' || !Array.isArray(arr)) return;
+          arr.forEach((it) =&gt; items.push({ id: it.orderNum, label: it.info, group, max: 10 }));
+        });
+        items.sort((a, b) =&gt; a.id - b.id);
+        return { items, hasMemo: true, fetchedAt: Date.now() };
+      },
+      async submit(task, form, answers, memo) {
+        const c = task.raw;
+        const r = await this.api('POST', 'post.php', {
+          action: 'stuPj',
+          jxb: c.jxb,
+          teaId: c.teaId,
+          scoreDetail: form.items.map((it) =&gt; ({ orderNum: it.id, score: answers[it.id] })),
+          memoDetail: memo || null,
+        });
+        return { ok: r.code === 0, msg: r.info || (r.code === 0 ? '成功' : `code=${r.code}`) };
+      },
+      isTimeError(msg) {
+        return /秒|时间|太快|频繁|稍后/.test(msg || '');
+      },
+    },
+  ];
+
+  const profile = PROFILES.find((p) =&gt; p.match.test(location.href));
+  if (!profile) return;
+
+  /* =====================================================================
+   * 2. 通用：打分策略
+   * ===================================================================== */
+  const randInt = (a, b) =&gt; a + Math.floor(Math.random() * (b - a + 1));
+
+  function makeAnswers(items, opt) {
+    const ans = {};
+    items.forEach((it) =&gt; {
+      const max = it.max || 10;
+      const v = opt.mode === 'range'
+        ? randInt(Math.min(opt.min, opt.max), Math.max(opt.min, opt.max))
+        : opt.fixed;
+      ans[it.id] = Math.max(1, Math.min(max, v));
+    });
+    if (opt.notAllSame &amp;&amp; items.length &gt; 1) {
+      const vals = Object.values(ans);
+      if (vals.every((v) =&gt; v === vals[0])) {
+        const pick = items[randInt(0, items.length - 1)];
+        ans[pick.id] = ans[pick.id] &gt; 1 ? ans[pick.id] - 1 : ans[pick.id] + 1;
+      }
+    }
+    return ans;
+  }
+
+  function pickMemo(text) {
+    const lines = (text || '').split('\n').map((s) =&gt; s.trim()).filter(Boolean);
+    return lines.length ? lines[randInt(0, lines.length - 1)] : null;
+  }
+
+  /* =====================================================================
+   * 3. 通用：页面倒计时加速（备用方案，对页面自带的评价弹窗生效）
+   *    把 ≥1s 的 setInterval 加速，只在开关打开时生效。
+   * ===================================================================== */
+  const LS_KEY = 'evalHelper:' + profile.id;
+  const loadOpt = () =&gt; {
+    try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; }
+  };
+  const saveOpt = (o) =&gt; { try { localStorage.setItem(LS_KEY, JSON.stringify(o)); } catch {} };
+
+  const opt = Object.assign({
+    mode: 'fixed', fixed: 10, min: 9, max: 10, notAllSame: false,
+    memo: '', speedUpTimer: true, delayMs: 300,
+  }, loadOpt());
+
+  const nativeSetInterval = window.setInterval;
+  window.setInterval = function (fn, ms, ...rest) {
+    if (opt.speedUpTimer &amp;&amp; typeof ms === 'number' &amp;&amp; ms &gt;= 1000) ms = Math.max(5, ms / 100);
+    return nativeSetInterval.call(this, fn, ms, ...rest);
+  };
+
+  /* =====================================================================
+   * 4. 通用：执行引擎
+   * ===================================================================== */
+  const sleep = (ms) =&gt; new Promise((r) =&gt; setTimeout(r, ms));
+
+  async function buildPlan(log) {
+    const tasks = (await profile.listTasks()).filter((t) =&gt; t.remaining &gt; 0);
+    log(`待评课程 ${tasks.length} 门，共需提交 ${tasks.reduce((s, t) =&gt; s + t.remaining, 0)} 次`);
+    return tasks;
+  }
+
+  async function runTasks(tasks, { limit = Infinity, dryRun = false } = {}, log) {
+    let sent = 0, okCount = 0;
+    const failed = [];
+    for (const task of tasks) {
+      for (let n = 0; n &lt; task.remaining &amp;&amp; sent &lt; limit; n++) {
+        sent++;
+        const form = await profile.getForm(task);
+        const answers = makeAnswers(form.items, opt);
+        const memo = pickMemo(opt.memo);
+        const scoreStr = form.items.map((it) =&gt; answers[it.id]).join(',');
+        if (dryRun) {
+          log(`[预览] ${task.title}（第${task.done + n + 1}次）：${scoreStr}${memo ? ' / ' + memo : ''}`);
+          continue;
+        }
+        let r = await profile.submit(task, form, answers, memo);
+        if (!r.ok &amp;&amp; profile.isTimeError(r.msg) &amp;&amp; profile.minWaitSec) {
+          const waitMs = form.fetchedAt + profile.minWaitSec * 1000 + 2000 - Date.now();
+          log(`服务端要求停留时长（${r.msg}），等待 ${Math.ceil(waitMs / 1000)} 秒后重试…`);
+          if (waitMs &gt; 0) await sleep(waitMs);
+          r = await profile.submit(task, form, answers, memo);
+        }
+        if (r.ok) { okCount++; log(`✅ ${task.title}：${scoreStr}`); }
+        else { failed.push(task.title); log(`❌ ${task.title}：${r.msg}`); }
+        await sleep(opt.delayMs);
+      }
+      if (sent &gt;= limit) break;
+    }
+    if (!dryRun) log(`完成：成功 ${okCount}，失败 ${failed.length}`);
+    return { okCount, failed };
+  }
+
+  /* =====================================================================
+   * 5. UI（Shadow DOM，避免与页面样式冲突）
+   * ===================================================================== */
+  function mountUI() {
+    const host = document.createElement('div');
+    host.style.cssText = 'position:fixed;right:12px;bottom:72px;z-index:2147483647;';
+    document.body.appendChild(host);
+    const root = host.attachShadow({ mode: 'open' });
+    root.innerHTML = `
+      &lt;style&gt;
+        :host{font:13px/1.5 -apple-system,"PingFang SC",sans-serif;color:#222}
+        .fab{background:#006633;color:#fff;border:none;border-radius:22px;padding:10px 16px;
+             box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer;font-size:14px}
+        .panel{display:none;width:min(340px,calc(100vw - 24px));max-height:75vh;overflow:auto;background:#fff;
+               border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.25);padding:14px;margin-bottom:8px}
+        .panel.open{display:block}
+        h3{margin:0 0 8px;font-size:15px;color:#006633}
+        label{display:flex;align-items:center;gap:6px;margin:6px 0}
+        input[type=number]{width:52px;padding:2px 4px}
+        textarea{width:100%;box-sizing:border-box;min-height:48px;font:inherit}
+        .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+        button.b{flex:1;padding:7px 4px;border-radius:6px;border:1px solid #006633;background:#fff;color:#006633;cursor:pointer}
+        button.b.primary{background:#006633;color:#fff}
+        button.b:disabled{opacity:.5;cursor:not-allowed}
+        .log{margin-top:10px;background:#f5f7f5;border-radius:6px;padding:6px;max-height:200px;overflow:auto;
+             font-size:12px;white-space:pre-wrap;word-break:break-all}
+        .hint{color:#888;font-size:12px}
+      &lt;/style&gt;
+      &lt;div class="panel" id="panel"&gt;
+        &lt;h3&gt;一键评教 · ${profile.name}&lt;/h3&gt;
+        &lt;label&gt;&lt;input type="radio" name="mode" value="fixed"&gt; 统一分数 &lt;input type="number" id="fixed" min="1" max="10"&gt; 星&lt;/label&gt;
+        &lt;label&gt;&lt;input type="radio" name="mode" value="range"&gt; 随机区间 &lt;input type="number" id="min" min="1" max="10"&gt; ~ &lt;input type="number" id="max" min="1" max="10"&gt; 星&lt;/label&gt;
+        &lt;label&gt;&lt;input type="checkbox" id="notAllSame"&gt; 避免全部同分（随机一项 ±1）&lt;/label&gt;
+        &lt;label&gt;&lt;input type="checkbox" id="speedUp"&gt; 加速页面自带倒计时（手动评价时用，需刷新）&lt;/label&gt;
+        &lt;div class="hint"&gt;评语模板（每行一条，随机选；留空则不填）&lt;/div&gt;
+        &lt;textarea id="memo" placeholder="例如：讲课认真，条理清晰"&gt;&lt;/textarea&gt;
+        &lt;div class="row"&gt;
+          &lt;button class="b" id="preview"&gt;预览&lt;/button&gt;
+          &lt;button class="b" id="one"&gt;先提交 1 门&lt;/button&gt;
+          &lt;button class="b primary" id="all"&gt;全部提交&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class="log" id="log"&gt;提交后不可更改，建议先“预览”再“先提交 1 门”。&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;button class="fab" id="fab"&gt;一键评教&lt;/button&gt;`;
+
+    const $ = (id) =&gt; root.getElementById(id);
+    const logEl = $('log');
+    const log = (m) =&gt; { logEl.textContent += '\n' + m; logEl.scrollTop = logEl.scrollHeight; };
+
+    root.querySelectorAll('input[name=mode]').forEach((r) =&gt; { r.checked = r.value === opt.mode; });
+    $('fixed').value = opt.fixed; $('min').value = opt.min; $('max').value = opt.max;
+    $('notAllSame').checked = opt.notAllSame; $('speedUp').checked = opt.speedUpTimer; $('memo').value = opt.memo;
+
+    const readOpt = () =&gt; {
+      opt.mode = root.querySelector('input[name=mode]:checked')?.value || 'fixed';
+      opt.fixed = +$('fixed').value || 10; opt.min = +$('min').value || 9; opt.max = +$('max').value || 10;
+      opt.notAllSame = $('notAllSame').checked; opt.speedUpTimer = $('speedUp').checked; opt.memo = $('memo').value;
+      saveOpt(opt);
+    };
+
+    $('fab').onclick = () =&gt; $('panel').classList.toggle('open');
+    const btns = ['preview', 'one', 'all'].map($);
+    const guard = (fn) =&gt; async () =&gt; {
+      readOpt();
+      btns.forEach((b) =&gt; (b.disabled = true));
+      logEl.textContent = '';
+      try { await fn(); } catch (e) { log('⚠️ ' + (e.message || e)); }
+      btns.forEach((b) =&gt; (b.disabled = false));
+    };
+
+    $('preview').onclick = guard(async () =&gt; {
+      await runTasks(await buildPlan(log), { dryRun: true }, log);
+    });
+    $('one').onclick = guard(async () =&gt; {
+      const tasks = await buildPlan(log);
+      if (!tasks.length) return log('没有待评课程');
+      if (!confirm(`将提交「${tasks[0].title}」1 次评价，提交后不可更改。确定？`)) return log('已取消');
+      await runTasks(tasks, { limit: 1 }, log);
+    });
+    $('all').onclick = guard(async () =&gt; {
+      const tasks = await buildPlan(log);
+      const total = tasks.reduce((s, t) =&gt; s + t.remaining, 0);
+      if (!total) return log('没有待评课程');
+      if (!confirm(`将为 ${tasks.length} 门课程提交共 ${total} 次评价，提交后不可更改。确定？`)) return log('已取消');
+      await runTasks(tasks, {}, log);
+      log('3 秒后刷新页面…'); await sleep(3000); location.reload();
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountUI);
+  else mountUI();
+
+  // 供控制台调试
+  window.__evalHelper = { profile, opt, buildPlan, runTasks, makeAnswers };
+})();
+</textarea>
+        <p class="tip">如果按钮没反应：点一下上面的方框，按 <kbd>Ctrl</kbd>+<kbd>A</kbd> 全选，再按 <kbd>Ctrl</kbd>+<kbd>C</kbd> 复制。苹果电脑把 Ctrl 换成 <kbd>⌘</kbd>。</p>
+      </li>
+
+      <li>
+        <h3>把它粘贴进篡改猴（用了一键安装可跳过）</h3>
+        <ul class="sub">
+          <li>点浏览器右上角的拼图图标，再点“篡改猴”（黑色方块图标）。</li>
+          <li>在弹出的菜单里点 <span class="ui">添加新脚本</span>，会打开一个编辑页面。</li>
+          <li>里面已经有几行默认文字：按 <kbd>Ctrl</kbd>+<kbd>A</kbd> 全选，按 <kbd>Delete</kbd> 删掉。</li>
+          <li>按 <kbd>Ctrl</kbd>+<kbd>V</kbd> 粘贴，再按 <kbd>Ctrl</kbd>+<kbd>S</kbd> 保存。</li>
+          <li>保存后可以直接关掉这个编辑页面。</li>
+        </ul>
+        <p class="tip">苹果电脑用 <kbd>⌘</kbd> 代替 <kbd>Ctrl</kbd>。</p>
+      </li>
+
+      <li>
+        <h3>打开学评教，开始评价</h3>
+        <p>像平时一样登录并打开 <a href="http://jwzxm.cqupt.edu.cn/mjwzx2022/xpj2025/html/index.php#/student/course" target="_blank" rel="noopener">学评教页面</a>。页面右下角会多出一个绿色按钮 <span class="fab">一键评教</span>，点它打开设置面板：</p>
+        <div class="mock" aria-hidden="true">
+          <div class="t">一键评教 · 重庆邮电大学 学评教 2025</div>
+          <div class="r"><span class="dot on"></span>统一分数 <span class="n">10</span> 星</div>
+          <div class="r"><span class="dot"></span>随机区间 <span class="n">9</span> ~ <span class="n">10</span> 星</div>
+          <div class="r"><span class="box"></span>避免全部同分</div>
+          <div class="bs"><span>预览</span><span>先提交 1 门</span><span class="p">全部提交</span></div>
+        </div>
+        <ul class="sub">
+          <li><b>选分数</b>：“统一分数”是每题都打同样的星；“随机区间”是每题在这个范围里随机打。</li>
+          <li><b>评语</b>（可不填）：每行写一句，助手会随机挑一句填上。</li>
+          <li><b>按顺序点三个按钮：</b></li>
+        </ul>
+        <div class="flow"><span class="s">预览</span>看看每门课会打几分 → <span class="s">先提交 1 门</span>回页面确认这门课变成“评价总次数：2次” → <span class="s">全部提交</span>剩下的一起交</div>
+        <p class="note">提交后不能修改。每次提交前助手都会弹窗让你确认，看清楚再点“确定”。</p>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>常见问题</h2>
+    <details>
+      <summary>页面上没有出现绿色按钮</summary>
+      <ul>
+        <li>按 <kbd>F5</kbd> 刷新一下页面。</li>
+        <li>检查第 2 步的“允许用户脚本”开关是否打开。</li>
+        <li>点篡改猴图标，确认“一键评教助手”前面的开关是开着的。</li>
+        <li>确认打开的是学评教页面，而不是教务在线首页。</li>
+      </ul>
+    </details>
+    <details>
+      <summary>提示“登录已失效”</summary>
+      <p>登录时间太久被系统退出了。重新登录教务在线，再打开学评教页面，然后重新点“全部提交”。已经交过的课程不会重复提交。</p>
+    </details>
+    <details>
+      <summary>提示“等待 60 秒后重试”</summary>
+      <p>说明学校服务器也在检查等待时间。不用管它，助手会自动等够时间再交，最多多等一分钟。别关闭页面。</p>
+    </details>
+    <details>
+      <summary>有几门课显示“❌ 失败”</summary>
+      <p>先刷新页面，看那几门课是否已经评完。没评完的话再点一次“全部提交”，助手只会补交还没完成的课程。</p>
+    </details>
+    <details>
+      <summary>安全吗？会不会泄露我的账号？</summary>
+      <p>助手只在你自己的浏览器里运行，不需要也不会读取你的账号密码，不会把数据发给学校以外的任何地方。它提交的内容和你手动点星星提交的一模一样。</p>
+    </details>
+    <details>
+      <summary>以后学校改版了还能用吗？</summary>
+      <p>如果学评教页面大改，助手可能失效，到时请等更新版本。旧版本失效时只会提示出错，不会乱提交。</p>
+    </details>
+  </section>
+
+  <p class="note">评教分数会影响老师的考核。助手帮你省掉的是等待时间，分数请按自己的真实感受来设置；使用前也请了解学校对评教的相关规定。</p>
+
+  <footer>适用于：重庆邮电大学 教务在线 · 学评教（2025 版）。评教助手版本 0.1.0。开源地址：<a href="https://github.com/SeaKurisu/eval-helper" target="_blank" rel="noopener">github.com/SeaKurisu/eval-helper</a>。</footer>
+</div>
+
+<script>
+(function(){
+  var n=document.getElementById('n'), out=document.getElementById('manual');
+  function upd(){var v=Math.max(1,Math.min(60,parseInt(n.value,10)||1));var m=Math.round(v*90/60);out.textContent='约 '+m+' 分钟';}
+  n.addEventListener('input',upd); upd();
+  var btn=document.getElementById('copy'), ta=document.getElementById('script'), st=document.getElementById('copyStatus');
+  function fallback(){ta.focus();ta.select();try{document.execCommand('copy');st.textContent='已复制，去第 4 步粘贴';}catch(e){st.textContent='已帮你选中，请按 Ctrl+C（苹果电脑 ⌘+C）复制';}}
+  btn.addEventListener('click',function(){
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(ta.value).then(function(){st.textContent='已复制，去第 4 步粘贴';},fallback);
+    }else{fallback();}
+  });
+})();
+</script>
+
+</body>
+</html>
