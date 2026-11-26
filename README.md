@@ -10,7 +10,7 @@
 2. Chrome 需要在 `chrome://extensions` → 篡改猴 → 详细信息 中打开 **允许用户脚本**（没有这个开关时，打开右上角的“开发者模式”）。
 3. 点击安装：**[eval-helper.user.js](https://raw.githubusercontent.com/SeaKurisu/eval-helper/main/eval-helper.user.js)**，在篡改猴弹出的页面点“安装”。
 
-不熟悉电脑的同学请看图文版指南：[docs/index.html](docs/index.html)（开启 GitHub Pages 后可直接在线浏览）。
+不熟悉电脑的同学请看图文版指南：**https://seakurisu.github.io/eval-helper/**
 
 ## 使用
 
